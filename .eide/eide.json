@@ -12,6 +12,48 @@
         "files": [
           {
             "path": "main.c"
+          },
+          {
+            "path": "STC89_Lib/src/exti.c"
+          },
+          {
+            "path": "STC89_Lib/src/gpio.c"
+          },
+          {
+            "path": "STC89_Lib/src/isp.c"
+          },
+          {
+            "path": "STC89_Lib/src/mem.c"
+          },
+          {
+            "path": "STC89_Lib/src/nvic.c"
+          },
+          {
+            "path": "STC89_Lib/src/power.c"
+          },
+          {
+            "path": "STC89_Lib/src/soft_i2c.c"
+          },
+          {
+            "path": "STC89_Lib/src/soft_pwm.c"
+          },
+          {
+            "path": "STC89_Lib/src/soft_spi.c"
+          },
+          {
+            "path": "STC89_Lib/src/system.c"
+          },
+          {
+            "path": "STC89_Lib/src/timer.c"
+          },
+          {
+            "path": "STC89_Lib/src/uart.c"
+          },
+          {
+            "path": "STC89_Lib/src/wdt.c"
+          },
+          {
+            "path": "STC89_Lib/src/MFRC522.c"
           }
         ],
         "folders": []
@@ -31,20 +73,30 @@
       "compileConfig": {
         "options": "null"
       },
-      "uploader": "Custom",
+      "uploader": "stcgal",
       "uploadConfig": {
         "bin": "",
-        "commandLine": "",
-        "eraseChipCommand": ""
+        "eepromImgPath": "null",
+        "extraOptions": "",
+        "options": ".eide/stc.flash.json"
       },
-      "uploadConfigMap": {},
+      "uploadConfigMap": {
+        "Custom": {
+          "bin": "",
+          "commandLine": "",
+          "eraseChipCommand": ""
+        }
+      },
       "custom_dep": {
         "name": "default",
         "incList": [
-          "../../../../Keil_v5/C51/INC/STC"
+          "../../../../Keil_v5/C51/INC/STC",
+          "STC89_Lib/inc"
         ],
         "libList": [],
-        "defineList": []
+        "defineList": [
+          "STC89"
+        ]
       },
       "builderOptions": {
         "Keil_C51": {

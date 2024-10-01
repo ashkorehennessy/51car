@@ -19,7 +19,10 @@
             "*.cpp": "cpp",
             "*.cxx": "cpp",
             "*.cc": "cpp",
-            "INTRINS.H": "cpp"
+            "INTRINS.H": "cpp",
+            "STDIO.H": "cpp",
+            "STDDEF.H": "cpp",
+            "STC89C5xRC.H": "cpp"
         },
         "[yaml]": {
             "editor.insertSpaces": true,
