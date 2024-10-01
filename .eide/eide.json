@@ -54,6 +54,9 @@
           },
           {
             "path": "STC89_Lib/src/MFRC522.c"
+          },
+          {
+            "path": "STC89_Lib/src/encoder.c"
           }
         ],
         "folders": []
