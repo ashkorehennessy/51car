@@ -54,9 +54,6 @@
           },
           {
             "path": "STC89_Lib/src/MFRC522.c"
-          },
-          {
-            "path": "STC89_Lib/src/encoder.c"
           }
         ],
         "folders": []
@@ -71,7 +68,9 @@
   },
   "targets": {
     "Target 1": {
-      "excludeList": [],
+      "excludeList": [
+        "<virtual_root>/Source Group 1/encoder.c"
+      ],
       "toolchain": "Keil_C51",
       "compileConfig": {
         "options": "null"
