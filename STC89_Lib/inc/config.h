@@ -19,7 +19,7 @@ sbit     LED_GREEN = P0^0;
 
 
 // 外部晶振频率, 单位是Hz
-#define FOSC 11059200L
+#define FOSC 12000000L
 // 执行每条指令所花费的时钟周期数, 传统51单片机为12T, STC89支持12T和6T, 更新的单片机支持1T, 烧录时不要忘记在软件中修改
 #define CPI 12
 
