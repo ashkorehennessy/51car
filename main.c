@@ -20,6 +20,10 @@
 #define PWM_CH2_PIN P27
 #define SERVO_MID_DUTY 19
 
+#define LED_STATION0 P20
+#define LED_STATION1 P22
+#define LED_STATION2 P24
+
 #define LMOTOR_A P01
 #define LMOTOR_B P00
 #define RMOTOR_A P02
@@ -27,6 +31,8 @@
 
 #define TIMER0_VALUE 65475
 #define TIMER1_VALUE 55536
+
+uint16_t uptime = 0;
 
 uint8_t pdata status;
 uint8_t pdata tag_type[2];
@@ -58,9 +64,9 @@ int16_t pdata servo_derivative = 0;
 int16_t pdata servo_output = 0;
 
 int16_t pdata lmotor_Kp = 10;
-int16_t pdata lmotor_Ki = 0;
+int16_t pdata lmotor_Ki = 3;
 int16_t pdata lmotor_Kd = 3;
-#define LMOTOR_SETPOINT_BASE 20
+#define LMOTOR_SETPOINT_BASE 10
 int16_t pdata lmotor_setpoint = 0;
 int16_t pdata lmotor_error = 0;
 int16_t pdata lmotor_last_error = 0;
@@ -69,15 +75,21 @@ int16_t pdata lmotor_derivative = 0;
 int16_t pdata lmotor_output = 0;
 
 int16_t pdata rmotor_Kp = 10;
-int16_t pdata rmotor_Ki = 0;
+int16_t pdata rmotor_Ki = 3;
 int16_t pdata rmotor_Kd = 3;
-#define RMOTOR_SETPOINT_BASE 20
+#define RMOTOR_SETPOINT_BASE 10
 int16_t pdata rmotor_setpoint = 0;
 int16_t pdata rmotor_error = 0;
 int16_t pdata rmotor_last_error = 0;
 int16_t pdata rmotor_integral = 0;
 int16_t pdata rmotor_derivative = 0;
 int16_t pdata rmotor_output = 0;
+
+int8_t pdata task_index = 0;
+int8_t pdata flag_stop = 0;
+int8_t pdata flag_end = 0;
+uint16_t pdata timestamp = 0;
+uint16_t pdata timestamp_led = 0;
 
 static inline void Delay1ms(void)	//@12.000MHz
 {
@@ -151,25 +163,36 @@ void main(){
     encoder_left_init();
     encoder_right_init();
     printf("encoder init\r\n");
-    while(1){        
-        // printf(":%d,%d,%d,%d\r\n",(int16_t)position,(int16_t)servo_output,(int16_t)encoder_left_speed,(int16_t)encoder_right_speed); 
-        // status = PcdRequest(PICC_REQALL, tag_type);
-        // if (status != MI_OK){
-        //     PcdAntennaOff();
-        //     Delay1ms();
-        //     PcdAntennaOn();
-        //     continue;
-        // }
+    while(1){
+        status = PcdRequest(PICC_REQALL, tag_type);
+        if (status != MI_OK){
+            PcdAntennaOff();
+            Delay1ms();
+            PcdAntennaOn();
+            continue;
+        }
 
-        // printf(":%04X",tag_type[0]);
+        printf(":%04X",tag_type[0]);
 
-        // status = PcdAnticoll(serial_number);
-        // if (status != MI_OK){
-        //     continue;    
-        // }
+        status = PcdAnticoll(serial_number);
+        if (status != MI_OK){
+            continue;    
+        }
+        if(serial_number[0] == 0xD3 && serial_number[1] == 0x28 && serial_number[2] == 0x67 && serial_number[3] == 0x05){
+            timestamp_led = uptime;
+            LED_STATION0 = 0;
+        }
+        if(serial_number[0] == 0xD3 && serial_number[1] == 0x28 && serial_number[2] == 0x67 && serial_number[3] == 0x05){
+            timestamp_led = uptime;
+            LED_STATION1 = 0;
+        }
+        if(serial_number[0] == 0xD3 && serial_number[1] == 0x28 && serial_number[2] == 0x67 && serial_number[3] == 0x05){
+            timestamp_led = uptime;
+            LED_STATION2 = 0;
+        }
 
-        // printf(",%02X,%02X,%02X,%02X\r\n",(uint16_t)serial_number[0],(uint16_t)serial_number[1],(uint16_t)serial_number[2],(uint16_t)serial_number[3]);
-        printf(":%d,%d,%d,%d,%d,%d\r\n",(int16_t)lmotor_output,(int16_t)rmotor_output,(int16_t)encoder_left_speed,(int16_t)encoder_right_speed,lmotor_setpoint,rmotor_setpoint);
+        printf(",%02X,%02X,%02X,%02X\r\n",(uint16_t)serial_number[0],(uint16_t)serial_number[1],(uint16_t)serial_number[2],(uint16_t)serial_number[3]);
+        // printf(":%d,%d,%d,%d,%d,%d\r\n",(int16_t)lmotor_output,(int16_t)rmotor_output,(int16_t)encoder_left_speed,(int16_t)encoder_right_speed,lmotor_setpoint,rmotor_setpoint);
     }
 }
 
@@ -197,6 +220,7 @@ void timer0(void) interrupt 1{
 void timer1(void) interrupt 3{
     TH1 = TIMER1_VALUE >> 8;
     TL1 = TIMER1_VALUE;
+    uptime += 10;
     // calculate position
     switch (P1)
     {
@@ -248,11 +272,47 @@ void timer1(void) interrupt 3{
         case 0x01:
             position = 48;
             break;
+        // 1111 1111
+        case 0xFF:
+            flag_end = 1;
+            flag_stop = 1;
+            break;
         default:
             position = last_position;
             break;
     }
     last_position = position;
+    // task switch
+    switch (task_index){
+        case 0:
+            if(flag_end == 1){
+                task_index = 1;
+                timestamp = uptime;
+            }
+            break;
+        case 1:
+            if(uptime - timestamp > 5000){
+                task_index = 2;
+                flag_stop = 0;
+                timestamp = uptime;
+            }
+            break;
+        case 2:
+            if(uptime - timestamp > 3000){
+                task_index = 3;
+                timestamp = uptime;
+            } else {
+                position = -48;
+                last_position = -48;
+            }
+            break;
+    }
+    // led control
+    if(uptime - timestamp_led > 1000){
+        LED_STATION0 = 1;
+        LED_STATION1 = 1;
+        LED_STATION2 = 1;
+    }
     // calculate servo pid
     servo_error = servo_setpoint - position;
     servo_integral += servo_error;
@@ -275,11 +335,11 @@ void timer1(void) interrupt 3{
         encoder_right_count = 0;
         
         if(servo_output > 0){
-            lmotor_setpoint = LMOTOR_SETPOINT_BASE - servo_output * 2;
+            lmotor_setpoint = LMOTOR_SETPOINT_BASE - servo_output;
             rmotor_setpoint = RMOTOR_SETPOINT_BASE;
         } else {
             lmotor_setpoint = LMOTOR_SETPOINT_BASE;
-            rmotor_setpoint = RMOTOR_SETPOINT_BASE + servo_output * 2;
+            rmotor_setpoint = RMOTOR_SETPOINT_BASE + servo_output;
         }
         // calculate lmotor pid
         lmotor_error = lmotor_setpoint - encoder_left_speed;
@@ -287,12 +347,16 @@ void timer1(void) interrupt 3{
         lmotor_derivative = lmotor_error - lmotor_last_error;
         lmotor_output = lmotor_Kp * lmotor_error + lmotor_Ki * lmotor_integral + lmotor_Kd * lmotor_derivative;
         lmotor_last_error = lmotor_error;
+        if(lmotor_integral > 200) lmotor_integral = 200;
+        if(lmotor_integral < -200) lmotor_integral = -200;
         // calculate rmotor pid
         rmotor_error = rmotor_setpoint - encoder_right_speed;
         rmotor_integral += rmotor_error;
         rmotor_derivative = rmotor_error - rmotor_last_error;
         rmotor_output = rmotor_Kp * rmotor_error + rmotor_Ki * rmotor_integral + rmotor_Kd * rmotor_derivative;
         rmotor_last_error = rmotor_error;
+        if(rmotor_integral > 200) rmotor_integral = 200;
+        if(rmotor_integral < -200) rmotor_integral = -200;
         if(lmotor_output > 0){
             LMOTOR_A = 1;
             LMOTOR_B = 0;
@@ -302,7 +366,6 @@ void timer1(void) interrupt 3{
         }
         if(lmotor_output > 250)lmotor_output = 250;
         if(lmotor_output < -250)lmotor_output = -250;
-        pwm_duty_ch1 = ABS(lmotor_output);
         if(rmotor_output > 0){
             RMOTOR_A = 1;
             RMOTOR_B = 0;
@@ -312,10 +375,14 @@ void timer1(void) interrupt 3{
         }
         if(rmotor_output > 250)rmotor_output = 250;
         if(rmotor_output < -250)rmotor_output = -250;
-        pwm_duty_ch2 = ABS(rmotor_output);
-
+        if(flag_stop == 0){
+            pwm_duty_ch1 = ABS(lmotor_output);
+            pwm_duty_ch2 = ABS(rmotor_output);
+        } else {
+            pwm_duty_ch1 = 0;
+            pwm_duty_ch2 = 0;
+        }
     }
-
 }
 
 void exint0(void) interrupt 0{
