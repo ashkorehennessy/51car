@@ -5,17 +5,17 @@
 /* 用户可根据所使用的板卡资源进行修改     */
 /* 请注意板卡上的引脚是否复用到其它模块   */
 
-sbit  MF522_NSS = P1^7;
-sbit  MF522_SCK = P1^6;
-sbit  MF522_SI  = P1^5;
-sbit  MF522_SO  = P1^4;
+sbit  MF522_NSS = P0^7;
+sbit  MF522_SCK = P0^6;
+sbit  MF522_SI  = P0^5;
+sbit  MF522_SO  = P0^4;
 
 /* 使用 【MFRC522-PA】 模块时，+5V 工作的 MCU 不能接复位控制引脚 */
 /* 因为该模块的复位电路上有二极管 1N4148，当 MCU 的复位管件输出为高时，影响到模块的电源 */
-sbit     MF522_RST  = P2^0;   
+sbit     MF522_RST  = P4^6;   
 
 /* 指示灯控制引脚，可不使用 */
-sbit     LED_GREEN = P0^0;
+sbit     LED_GREEN = P4^4;
 
 
 // 外部晶振频率, 单位是Hz

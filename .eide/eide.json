@@ -117,7 +117,7 @@
           "linker": {
             "remove-unused": true,
             "output-format": "elf",
-            "misc-controls": ""
+            "use-RTX": "None"
           }
         }
       }
