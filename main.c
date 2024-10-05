@@ -55,7 +55,7 @@ int8_t pdata last_position = 0;
 
 int16_t pdata servo_Kp = 1;
 int16_t pdata servo_Ki = 0;
-int16_t pdata servo_Kd = 0;
+int16_t pdata servo_Kd = 5;
 int16_t pdata servo_setpoint = 0;
 int16_t pdata servo_error = 0;
 int16_t pdata servo_last_error = 0;
@@ -234,49 +234,64 @@ void timer1(void) interrupt 3{
             break;
         // 0001 0000
         case 0x10:
-            position = -6;
+            position = -4;
             break;
         // 0000 1000
         case 0x08:
-            position = 6;
+            position = 4;
             break;
         // 0010 0000
         case 0x20:
-            position = -24;
+            position = -14;
             break;
         // 0000 0100
         case 0x04:
-            position = 24;
+            position = 14;
             break;
         // 0110 0000
         case 0x60:
-            position = -26;
+            position = -16;
             break;
         // 0000 0110
         case 0x06:
-            position = 26;
+            position = 16;
             break;
         // 0100 0000
         case 0x40:
-            position = -29;
+            position = -19;
             break;
         // 0000 0010
         case 0x02:
-            position = 29;
+            position = 19;
             break;
         // 1000 0000
         case 0x80:
-            position = -48;
+            position = -58;
             break;
         // 0000 0001
         case 0x01:
-            position = 48;
+            position = 58;
             break;
         // 1111 1111
         case 0xFF:
             flag_end = 1;
             flag_stop = 1;
             break;
+        // 0111 1111
+        case 0x7F:
+            flag_end = 1;
+            flag_stop = 1;
+            break;
+        // 1111 1110
+        case 0xFE:
+            flag_end = 1;
+            flag_stop = 1;
+            break;
+        // 0111 1110
+        case 0x7E:
+            flag_end = 1;
+            flag_stop = 1;
+            break; 
         default:
             position = last_position;
             break;
@@ -295,15 +310,25 @@ void timer1(void) interrupt 3{
                 task_index = 2;
                 flag_stop = 0;
                 timestamp = uptime;
+            } else {
+                position = 0;
             }
             break;
         case 2:
-            if(uptime - timestamp > 3000){
+            if(uptime - timestamp > 2000){
                 task_index = 3;
                 timestamp = uptime;
+                position = -6;
+                last_position = -6;
             } else {
                 position = -48;
                 last_position = -48;
+            }
+            break;
+        case 3:
+            if(uptime - timestamp > 1000){
+                task_index = 4;
+                timestamp = uptime;
             }
             break;
     }
