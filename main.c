@@ -18,21 +18,24 @@
 #define PWM_CH0_PIN P25
 #define PWM_CH1_PIN P26
 #define PWM_CH2_PIN P27
-#define SERVO_MID_DUTY 19
+#define SERVO_MID_DUTY 17
 
 #define LED_STATION0 P20
 #define LED_STATION1 P22
 #define LED_STATION2 P24
+#define MUSIC_STATION0 P21
+#define MUSIC_STATION1 P23
+#define MUSIC_STATION2 MUSIC_STATION0 = MUSIC_STATION1
 
 #define LMOTOR_A P01
 #define LMOTOR_B P00
 #define RMOTOR_A P02
 #define RMOTOR_B P03
 
-#define TIMER0_VALUE 65475
+#define TIMER0_VALUE 65465
 #define TIMER1_VALUE 55536
 
-uint16_t uptime = 0;
+uint16_t data uptime = 0;
 
 uint8_t pdata status;
 uint8_t pdata tag_type[2];
@@ -45,17 +48,16 @@ uint8_t data pwm_duty_ch2 = 7;
 
 int8_t data encoder_left_count = 0; 
 int8_t data encoder_right_count = 0;
-int8_t pdata encoder_left_speed = 0;
-int8_t pdata encoder_right_speed = 0;
-int8_t pdata speed_setpoint = 10;
-int8_t pdata speed_tick = 0;
+int8_t data encoder_left_speed = 0;
+int8_t data encoder_right_speed = 0;
+int8_t data speed_tick = 0;
 
-int8_t pdata position = 0;
-int8_t pdata last_position = 0;
+int8_t data position = 0;
+int8_t data last_position = 0;
 
 int16_t pdata servo_Kp = 1;
 int16_t pdata servo_Ki = 0;
-int16_t pdata servo_Kd = 5;
+int16_t pdata servo_Kd = 4;
 int16_t pdata servo_setpoint = 0;
 int16_t pdata servo_error = 0;
 int16_t pdata servo_last_error = 0;
@@ -66,7 +68,7 @@ int16_t pdata servo_output = 0;
 int16_t pdata lmotor_Kp = 10;
 int16_t pdata lmotor_Ki = 3;
 int16_t pdata lmotor_Kd = 3;
-#define LMOTOR_SETPOINT_BASE 10
+#define LMOTOR_SETPOINT_BASE 8
 int16_t pdata lmotor_setpoint = 0;
 int16_t pdata lmotor_error = 0;
 int16_t pdata lmotor_last_error = 0;
@@ -77,7 +79,7 @@ int16_t pdata lmotor_output = 0;
 int16_t pdata rmotor_Kp = 10;
 int16_t pdata rmotor_Ki = 3;
 int16_t pdata rmotor_Kd = 3;
-#define RMOTOR_SETPOINT_BASE 10
+#define RMOTOR_SETPOINT_BASE 8
 int16_t pdata rmotor_setpoint = 0;
 int16_t pdata rmotor_error = 0;
 int16_t pdata rmotor_last_error = 0;
@@ -164,6 +166,7 @@ void main(){
     encoder_right_init();
     printf("encoder init\r\n");
     while(1){
+        printf(":%d,%d,%d,%d,%d,%d\r\n",(int16_t)lmotor_output,(int16_t)rmotor_output,(int16_t)encoder_left_speed,(int16_t)encoder_right_speed,lmotor_setpoint,rmotor_setpoint);
         status = PcdRequest(PICC_REQALL, tag_type);
         if (status != MI_OK){
             PcdAntennaOff();
@@ -180,19 +183,21 @@ void main(){
         }
         if(serial_number[0] == 0xD3 && serial_number[1] == 0x28 && serial_number[2] == 0x67 && serial_number[3] == 0x05){
             timestamp_led = uptime;
+            MUSIC_STATION0 = 0;
             LED_STATION0 = 0;
         }
-        if(serial_number[0] == 0xD3 && serial_number[1] == 0x28 && serial_number[2] == 0x67 && serial_number[3] == 0x05){
+        if(serial_number[0] == 0x13 && serial_number[1] == 0xE5 && serial_number[2] == 0x92 && serial_number[3] == 0x05){
             timestamp_led = uptime;
+            MUSIC_STATION1 = 0;
             LED_STATION1 = 0;
         }
-        if(serial_number[0] == 0xD3 && serial_number[1] == 0x28 && serial_number[2] == 0x67 && serial_number[3] == 0x05){
+        if(serial_number[0] == 0xB3 && serial_number[1] == 0x66 && serial_number[2] == 0xDA && serial_number[3] == 0xE4){
             timestamp_led = uptime;
+            MUSIC_STATION2 = 0;
             LED_STATION2 = 0;
         }
 
-        printf(",%02X,%02X,%02X,%02X\r\n",(uint16_t)serial_number[0],(uint16_t)serial_number[1],(uint16_t)serial_number[2],(uint16_t)serial_number[3]);
-        // printf(":%d,%d,%d,%d,%d,%d\r\n",(int16_t)lmotor_output,(int16_t)rmotor_output,(int16_t)encoder_left_speed,(int16_t)encoder_right_speed,lmotor_setpoint,rmotor_setpoint);
+        // printf(",%02X,%02X,%02X,%02X\r\n",(uint16_t)serial_number[0],(uint16_t)serial_number[1],(uint16_t)serial_number[2],(uint16_t)serial_number[3]);
     }
 }
 
@@ -234,43 +239,43 @@ void timer1(void) interrupt 3{
             break;
         // 0001 0000
         case 0x10:
-            position = -4;
+            position = -6;
             break;
         // 0000 1000
         case 0x08:
-            position = 4;
+            position = 6;
             break;
         // 0010 0000
         case 0x20:
-            position = -14;
+            position = -16;
             break;
         // 0000 0100
         case 0x04:
-            position = 14;
+            position = 16;
             break;
         // 0110 0000
         case 0x60:
-            position = -16;
+            position = -18;
             break;
         // 0000 0110
         case 0x06:
-            position = 16;
+            position = 18;
             break;
         // 0100 0000
         case 0x40:
-            position = -19;
+            position = -22;
             break;
         // 0000 0010
         case 0x02:
-            position = 19;
+            position = 22;
             break;
         // 1000 0000
         case 0x80:
-            position = -58;
+            position = -42;
             break;
         // 0000 0001
         case 0x01:
-            position = 58;
+            position = 42;
             break;
         // 1111 1111
         case 0xFF:
@@ -315,14 +320,15 @@ void timer1(void) interrupt 3{
             }
             break;
         case 2:
-            if(uptime - timestamp > 2000){
+            if(uptime - timestamp > 2200){
                 task_index = 3;
                 timestamp = uptime;
-                position = -6;
-                last_position = -6;
+                position = -16;
+                last_position = -16;
             } else {
                 position = -48;
                 last_position = -48;
+                flag_stop = 0;
             }
             break;
         case 3:
@@ -337,6 +343,9 @@ void timer1(void) interrupt 3{
         LED_STATION0 = 1;
         LED_STATION1 = 1;
         LED_STATION2 = 1;
+        MUSIC_STATION0 = 1;
+        MUSIC_STATION1 = 1;
+        MUSIC_STATION2 = 1;
     }
     // calculate servo pid
     servo_error = servo_setpoint - position;
@@ -346,7 +355,7 @@ void timer1(void) interrupt 3{
     servo_last_error = servo_error;
     // set servo pwm duty
     servo_output = servo_output >> 3;
-    if(servo_output > 6)servo_output = 6;
+    if(servo_output > 8)servo_output = 8;
     if(servo_output < -6)servo_output = -6;
     pwm_duty_ch0 = SERVO_MID_DUTY - servo_output;
     
@@ -372,16 +381,16 @@ void timer1(void) interrupt 3{
         lmotor_derivative = lmotor_error - lmotor_last_error;
         lmotor_output = lmotor_Kp * lmotor_error + lmotor_Ki * lmotor_integral + lmotor_Kd * lmotor_derivative;
         lmotor_last_error = lmotor_error;
-        if(lmotor_integral > 200) lmotor_integral = 200;
-        if(lmotor_integral < -200) lmotor_integral = -200;
+        if(lmotor_integral > 90) lmotor_integral = 90;
+        if(lmotor_integral < -90) lmotor_integral = -90;
         // calculate rmotor pid
         rmotor_error = rmotor_setpoint - encoder_right_speed;
         rmotor_integral += rmotor_error;
         rmotor_derivative = rmotor_error - rmotor_last_error;
         rmotor_output = rmotor_Kp * rmotor_error + rmotor_Ki * rmotor_integral + rmotor_Kd * rmotor_derivative;
         rmotor_last_error = rmotor_error;
-        if(rmotor_integral > 200) rmotor_integral = 200;
-        if(rmotor_integral < -200) rmotor_integral = -200;
+        if(rmotor_integral > 90) rmotor_integral = 90;
+        if(rmotor_integral < -90) rmotor_integral = -90;
         if(lmotor_output > 0){
             LMOTOR_A = 1;
             LMOTOR_B = 0;
@@ -389,8 +398,8 @@ void timer1(void) interrupt 3{
             LMOTOR_A = 0;
             LMOTOR_B = 1;
         }
-        if(lmotor_output > 250)lmotor_output = 250;
-        if(lmotor_output < -250)lmotor_output = -250;
+        if(lmotor_output > 255)lmotor_output = 255;
+        if(lmotor_output < -255)lmotor_output = -255;
         if(rmotor_output > 0){
             RMOTOR_A = 1;
             RMOTOR_B = 0;
@@ -398,8 +407,8 @@ void timer1(void) interrupt 3{
             RMOTOR_A = 0;
             RMOTOR_B = 1;
         }
-        if(rmotor_output > 250)rmotor_output = 250;
-        if(rmotor_output < -250)rmotor_output = -250;
+        if(rmotor_output > 255)rmotor_output = 255;
+        if(rmotor_output < -255)rmotor_output = -255;
         if(flag_stop == 0){
             pwm_duty_ch1 = ABS(lmotor_output);
             pwm_duty_ch2 = ABS(rmotor_output);
