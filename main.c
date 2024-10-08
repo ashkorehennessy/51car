@@ -32,7 +32,7 @@
 #define RMOTOR_A P02
 #define RMOTOR_B P03
 
-#define TIMER0_VALUE 65465
+#define TIMER0_VALUE 65467
 #define TIMER1_VALUE 55536
 
 uint16_t data uptime = 0;
@@ -57,7 +57,7 @@ int8_t data last_position = 0;
 
 int16_t pdata servo_Kp = 1;
 int16_t pdata servo_Ki = 0;
-int16_t pdata servo_Kd = 4;
+int16_t pdata servo_Kd = 6;
 int16_t pdata servo_setpoint = 0;
 int16_t pdata servo_error = 0;
 int16_t pdata servo_last_error = 0;
@@ -68,7 +68,7 @@ int16_t pdata servo_output = 0;
 int16_t pdata lmotor_Kp = 10;
 int16_t pdata lmotor_Ki = 3;
 int16_t pdata lmotor_Kd = 3;
-#define LMOTOR_SETPOINT_BASE 8
+int16_t pdata LMOTOR_SETPOINT_BASE = 8;
 int16_t pdata lmotor_setpoint = 0;
 int16_t pdata lmotor_error = 0;
 int16_t pdata lmotor_last_error = 0;
@@ -79,7 +79,7 @@ int16_t pdata lmotor_output = 0;
 int16_t pdata rmotor_Kp = 10;
 int16_t pdata rmotor_Ki = 3;
 int16_t pdata rmotor_Kd = 3;
-#define RMOTOR_SETPOINT_BASE 8
+int16_t pdata RMOTOR_SETPOINT_BASE = 8;
 int16_t pdata rmotor_setpoint = 0;
 int16_t pdata rmotor_error = 0;
 int16_t pdata rmotor_last_error = 0;
@@ -239,35 +239,35 @@ void timer1(void) interrupt 3{
             break;
         // 0001 0000
         case 0x10:
-            position = -6;
+            position = -8;
             break;
         // 0000 1000
         case 0x08:
-            position = 6;
+            position = 8;
             break;
         // 0010 0000
         case 0x20:
-            position = -16;
+            position = -17;
             break;
         // 0000 0100
         case 0x04:
-            position = 16;
+            position = 17;
             break;
         // 0110 0000
         case 0x60:
-            position = -18;
+            position = -19;
             break;
         // 0000 0110
         case 0x06:
-            position = 18;
+            position = 19;
             break;
         // 0100 0000
         case 0x40:
-            position = -22;
+            position = -23;
             break;
         // 0000 0010
         case 0x02:
-            position = 22;
+            position = 23;
             break;
         // 1000 0000
         case 0x80:
@@ -320,11 +320,11 @@ void timer1(void) interrupt 3{
             }
             break;
         case 2:
-            if(uptime - timestamp > 2200){
+            if(uptime - timestamp > 2500){
                 task_index = 3;
                 timestamp = uptime;
-                position = -16;
-                last_position = -16;
+                position = 0;
+                last_position = 0;
             } else {
                 position = -48;
                 last_position = -48;
@@ -355,8 +355,9 @@ void timer1(void) interrupt 3{
     servo_last_error = servo_error;
     // set servo pwm duty
     servo_output = servo_output >> 3;
-    if(servo_output > 8)servo_output = 8;
     if(servo_output < -6)servo_output = -6;
+    if(servo_output > 0)servo_output = (servo_output * 5) / 3;
+    if(servo_output > 7)servo_output = 7;
     pwm_duty_ch0 = SERVO_MID_DUTY - servo_output;
     
     // read speed
@@ -369,11 +370,11 @@ void timer1(void) interrupt 3{
         encoder_right_count = 0;
         
         if(servo_output > 0){
-            lmotor_setpoint = LMOTOR_SETPOINT_BASE - servo_output;
+            lmotor_setpoint = LMOTOR_SETPOINT_BASE - servo_output >> 1;
             rmotor_setpoint = RMOTOR_SETPOINT_BASE;
         } else {
             lmotor_setpoint = LMOTOR_SETPOINT_BASE;
-            rmotor_setpoint = RMOTOR_SETPOINT_BASE + servo_output;
+            rmotor_setpoint = RMOTOR_SETPOINT_BASE + servo_output >> 1;
         }
         // calculate lmotor pid
         lmotor_error = lmotor_setpoint - encoder_left_speed;
