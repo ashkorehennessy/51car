@@ -65,25 +65,27 @@ int16_t pdata servo_integral = 0;
 int16_t pdata servo_derivative = 0;
 int16_t pdata servo_output = 0;
 
-int16_t pdata lmotor_Kp = 10;
-int16_t pdata lmotor_Ki = 8;
+int16_t pdata lmotor_Kp = 5;
+int16_t pdata lmotor_Ki = 15;
 int16_t pdata lmotor_Kd = 3;
 int16_t pdata LMOTOR_SETPOINT_BASE = 5;
 int16_t pdata lmotor_setpoint = 0;
 int16_t pdata lmotor_error = 0;
 int16_t pdata lmotor_last_error = 0;
-int16_t pdata lmotor_integral = 0;
+int16_t pdata lmotor_last_last_error = 0;
+int16_t pdata lmotor_increment = 0;
 int16_t pdata lmotor_derivative = 0;
 int16_t pdata lmotor_output = 0;
 
-int16_t pdata rmotor_Kp = 10;
-int16_t pdata rmotor_Ki = 8;
+int16_t pdata rmotor_Kp = 5;
+int16_t pdata rmotor_Ki = 15;
 int16_t pdata rmotor_Kd = 3;
 int16_t pdata RMOTOR_SETPOINT_BASE = 5;
 int16_t pdata rmotor_setpoint = 0;
 int16_t pdata rmotor_error = 0;
 int16_t pdata rmotor_last_error = 0;
-int16_t pdata rmotor_integral = 0;
+int16_t pdata rmotor_last_last_error = 0;
+int16_t pdata rmotor_increment = 0;
 int16_t pdata rmotor_derivative = 0;
 int16_t pdata rmotor_output = 0;
 
@@ -319,19 +321,23 @@ void timer1(void) interrupt 3{
                 task_index = 2;
                 flag_stop = 0;
                 timestamp = uptime;
+                lmotor_error = 0;
+                lmotor_last_error = 0;
+                lmotor_last_last_error = 0;
+                lmotor_output = 0;
+                rmotor_error = 0;
+                rmotor_last_error = 0;
+                rmotor_last_last_error = 0;
+                rmotor_output = 0;
             } else {
                 position = 0;
             }
             break;
         case 2:
-            if(uptime - timestamp > 4700){
+            if(uptime - timestamp > 700){
                 task_index = 3;
                 timestamp = uptime;
-                position = 0;
-                last_position = 0;
             } else {
-                position = -48;
-                last_position = -48;
                 flag_stop = 0;
             }
             break;
@@ -380,22 +386,27 @@ void timer1(void) interrupt 3{
             lmotor_setpoint = LMOTOR_SETPOINT_BASE;
             rmotor_setpoint = RMOTOR_SETPOINT_BASE + (servo_output >> 1);
         }
+        if(lmotor_setpoint < 0)lmotor_setpoint = 0;
+        if(rmotor_setpoint < 0)rmotor_setpoint = 0;
         // calculate lmotor pid
-        lmotor_error = lmotor_setpoint - encoder_left_speed;
-        lmotor_integral += lmotor_error;
-        lmotor_derivative = lmotor_error - lmotor_last_error;
-        lmotor_output = lmotor_Kp * lmotor_error + lmotor_Ki * lmotor_integral + lmotor_Kd * lmotor_derivative;
+        lmotor_last_last_error = lmotor_last_error;
         lmotor_last_error = lmotor_error;
-        if(lmotor_integral > 20) lmotor_integral = 20;
-        if(lmotor_integral < -20) lmotor_integral = -20;
+        lmotor_error = lmotor_setpoint - encoder_left_speed;
+        lmotor_derivative = (lmotor_error - 2 * lmotor_last_error + lmotor_last_last_error);
+        lmotor_increment = lmotor_Kp * (lmotor_error - lmotor_last_error) + lmotor_Ki * lmotor_error + lmotor_Kd * lmotor_derivative;
+        lmotor_output += lmotor_increment;
         // calculate rmotor pid
-        rmotor_error = rmotor_setpoint - encoder_right_speed;
-        rmotor_integral += rmotor_error;
-        rmotor_derivative = rmotor_error - rmotor_last_error;
-        rmotor_output = rmotor_Kp * rmotor_error + rmotor_Ki * rmotor_integral + rmotor_Kd * rmotor_derivative;
+        rmotor_last_last_error = rmotor_last_error;
         rmotor_last_error = rmotor_error;
-        if(rmotor_integral > 20) rmotor_integral = 20;
-        if(rmotor_integral < -20) rmotor_integral = -20;
+        rmotor_error = rmotor_setpoint - encoder_right_speed;
+        rmotor_derivative = (rmotor_error - 2 * rmotor_last_error + rmotor_last_last_error);
+        rmotor_increment = rmotor_Kp * (rmotor_error - rmotor_last_error) + rmotor_Ki * rmotor_error + rmotor_Kd * rmotor_derivative;
+        rmotor_output += rmotor_increment;
+
+        if(lmotor_output > 255)lmotor_output = 255;
+        if(lmotor_output < -255)lmotor_output = -255;
+        if(rmotor_output > 255)rmotor_output = 255;
+        if(rmotor_output < -255)rmotor_output = -255;
         if(lmotor_output > 0){
             LMOTOR_A = 1;
             LMOTOR_B = 0;
@@ -403,8 +414,6 @@ void timer1(void) interrupt 3{
             LMOTOR_A = 0;
             LMOTOR_B = 1;
         }
-        if(lmotor_output > 255)lmotor_output = 255;
-        if(lmotor_output < -255)lmotor_output = -255;
         if(rmotor_output > 0){
             RMOTOR_A = 1;
             RMOTOR_B = 0;
@@ -412,15 +421,20 @@ void timer1(void) interrupt 3{
             RMOTOR_A = 0;
             RMOTOR_B = 1;
         }
-        if(rmotor_output > 255)rmotor_output = 255;
-        if(rmotor_output < -255)rmotor_output = -255;
         if(flag_stop == 0){
-            pwm_duty_ch1 = ABS(lmotor_output);
-            pwm_duty_ch2 = ABS(rmotor_output);
+            if(flag_end == 1){
+                LMOTOR_SETPOINT_BASE = 2;
+                RMOTOR_SETPOINT_BASE = 2;
+            } else {
+                LMOTOR_SETPOINT_BASE = 5;
+                RMOTOR_SETPOINT_BASE = 5;
+            }
         } else {
-            pwm_duty_ch1 = 0;
-            pwm_duty_ch2 = 0;
+            LMOTOR_SETPOINT_BASE = 0;
+            RMOTOR_SETPOINT_BASE = 0;
         }
+        pwm_duty_ch1 = ABS(lmotor_output);
+        pwm_duty_ch2 = ABS(rmotor_output);
     }
 }
 
