@@ -66,9 +66,9 @@ int16_t pdata servo_derivative = 0;
 int16_t pdata servo_output = 0;
 
 int16_t pdata lmotor_Kp = 10;
-int16_t pdata lmotor_Ki = 3;
+int16_t pdata lmotor_Ki = 8;
 int16_t pdata lmotor_Kd = 3;
-int16_t pdata LMOTOR_SETPOINT_BASE = 8;
+int16_t pdata LMOTOR_SETPOINT_BASE = 5;
 int16_t pdata lmotor_setpoint = 0;
 int16_t pdata lmotor_error = 0;
 int16_t pdata lmotor_last_error = 0;
@@ -77,9 +77,9 @@ int16_t pdata lmotor_derivative = 0;
 int16_t pdata lmotor_output = 0;
 
 int16_t pdata rmotor_Kp = 10;
-int16_t pdata rmotor_Ki = 3;
+int16_t pdata rmotor_Ki = 8;
 int16_t pdata rmotor_Kd = 3;
-int16_t pdata RMOTOR_SETPOINT_BASE = 8;
+int16_t pdata RMOTOR_SETPOINT_BASE = 5;
 int16_t pdata rmotor_setpoint = 0;
 int16_t pdata rmotor_error = 0;
 int16_t pdata rmotor_last_error = 0;
@@ -308,6 +308,10 @@ void timer1(void) interrupt 3{
             if(flag_end == 1){
                 task_index = 1;
                 timestamp = uptime;
+                timestamp_led = uptime;
+                LED_STATION0 = 0;
+                LED_STATION1 = 0;
+                LED_STATION2 = 0;
             }
             break;
         case 1:
@@ -320,7 +324,7 @@ void timer1(void) interrupt 3{
             }
             break;
         case 2:
-            if(uptime - timestamp > 2500){
+            if(uptime - timestamp > 4700){
                 task_index = 3;
                 timestamp = uptime;
                 position = 0;
@@ -357,7 +361,7 @@ void timer1(void) interrupt 3{
     servo_output = servo_output >> 3;
     if(servo_output < -6)servo_output = -6;
     if(servo_output > 0)servo_output = (servo_output * 5) / 3;
-    if(servo_output > 7)servo_output = 7;
+    if(servo_output > 6)servo_output = 6;
     pwm_duty_ch0 = SERVO_MID_DUTY - servo_output;
     
     // read speed
@@ -370,11 +374,11 @@ void timer1(void) interrupt 3{
         encoder_right_count = 0;
         
         if(servo_output > 0){
-            lmotor_setpoint = LMOTOR_SETPOINT_BASE - servo_output >> 1;
+            lmotor_setpoint = LMOTOR_SETPOINT_BASE - (servo_output >> 1);
             rmotor_setpoint = RMOTOR_SETPOINT_BASE;
         } else {
             lmotor_setpoint = LMOTOR_SETPOINT_BASE;
-            rmotor_setpoint = RMOTOR_SETPOINT_BASE + servo_output >> 1;
+            rmotor_setpoint = RMOTOR_SETPOINT_BASE + (servo_output >> 1);
         }
         // calculate lmotor pid
         lmotor_error = lmotor_setpoint - encoder_left_speed;
@@ -382,16 +386,16 @@ void timer1(void) interrupt 3{
         lmotor_derivative = lmotor_error - lmotor_last_error;
         lmotor_output = lmotor_Kp * lmotor_error + lmotor_Ki * lmotor_integral + lmotor_Kd * lmotor_derivative;
         lmotor_last_error = lmotor_error;
-        if(lmotor_integral > 90) lmotor_integral = 90;
-        if(lmotor_integral < -90) lmotor_integral = -90;
+        if(lmotor_integral > 20) lmotor_integral = 20;
+        if(lmotor_integral < -20) lmotor_integral = -20;
         // calculate rmotor pid
         rmotor_error = rmotor_setpoint - encoder_right_speed;
         rmotor_integral += rmotor_error;
         rmotor_derivative = rmotor_error - rmotor_last_error;
         rmotor_output = rmotor_Kp * rmotor_error + rmotor_Ki * rmotor_integral + rmotor_Kd * rmotor_derivative;
         rmotor_last_error = rmotor_error;
-        if(rmotor_integral > 90) rmotor_integral = 90;
-        if(rmotor_integral < -90) rmotor_integral = -90;
+        if(rmotor_integral > 20) rmotor_integral = 20;
+        if(rmotor_integral < -20) rmotor_integral = -20;
         if(lmotor_output > 0){
             LMOTOR_A = 1;
             LMOTOR_B = 0;
@@ -421,7 +425,7 @@ void timer1(void) interrupt 3{
 }
 
 void exint0(void) interrupt 0{
-    if(ENCODER_LEFT_B == 1)
+    if(ENCODER_LEFT_B == 0)
     {
         encoder_left_count++;
     }
