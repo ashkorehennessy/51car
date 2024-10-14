@@ -37,16 +37,16 @@
 
 uint16_t data uptime = 0;
 
-uint8_t pdata status;
-uint8_t pdata tag_type[2];
-uint8_t pdata serial_number[4];
+uint8_t idata status;
+uint8_t idata tag_type[2];
+uint8_t idata serial_number[4];
 
 uint8_t data pwm_tick = 0;
 uint8_t data pwm_duty_ch0 = 7;
 uint8_t data pwm_duty_ch1 = 7;
 uint8_t data pwm_duty_ch2 = 7;
 
-int8_t data encoder_left_count = 0; 
+int8_t xdata encoder_left_count = 0; 
 int8_t data encoder_right_count = 0;
 int8_t data encoder_left_speed = 0;
 int8_t data encoder_right_speed = 0;
@@ -55,45 +55,45 @@ int8_t data speed_tick = 0;
 int8_t data position = 0;
 int8_t data last_position = 0;
 
-int16_t pdata servo_Kp = 1;
-int16_t pdata servo_Ki = 0;
-int16_t pdata servo_Kd = 6;
-int16_t pdata servo_setpoint = 0;
-int16_t pdata servo_error = 0;
-int16_t pdata servo_last_error = 0;
-int16_t pdata servo_integral = 0;
-int16_t pdata servo_derivative = 0;
-int16_t pdata servo_output = 0;
+int16_t idata servo_Kp = 1;
+int16_t idata servo_Ki = 0;
+int16_t idata servo_Kd = 6;
+int16_t idata servo_setpoint = 0;
+int16_t idata servo_error = 0;
+int16_t idata servo_last_error = 0;
+int16_t idata servo_integral = 0;
+int16_t idata servo_derivative = 0;
+int16_t idata servo_output = 0;
 
-int16_t pdata lmotor_Kp = 5;
-int16_t pdata lmotor_Ki = 15;
-int16_t pdata lmotor_Kd = 3;
-int16_t pdata LMOTOR_SETPOINT_BASE = 5;
-int16_t pdata lmotor_setpoint = 0;
-int16_t pdata lmotor_error = 0;
-int16_t pdata lmotor_last_error = 0;
-int16_t pdata lmotor_last_last_error = 0;
-int16_t pdata lmotor_increment = 0;
-int16_t pdata lmotor_derivative = 0;
-int16_t pdata lmotor_output = 0;
+int16_t idata lmotor_Kp = 5;
+int16_t idata lmotor_Ki = 15;
+int16_t idata lmotor_Kd = 3;
+int16_t idata LMOTOR_SETPOINT_BASE = 5;
+int16_t idata lmotor_setpoint = 0;
+int16_t idata lmotor_error = 0;
+int16_t idata lmotor_last_error = 0;
+int16_t idata lmotor_last_last_error = 0;
+int16_t idata lmotor_increment = 0;
+int16_t idata lmotor_derivative = 0;
+int16_t idata lmotor_output = 0;
 
-int16_t pdata rmotor_Kp = 5;
-int16_t pdata rmotor_Ki = 15;
-int16_t pdata rmotor_Kd = 3;
-int16_t pdata RMOTOR_SETPOINT_BASE = 5;
-int16_t pdata rmotor_setpoint = 0;
-int16_t pdata rmotor_error = 0;
-int16_t pdata rmotor_last_error = 0;
-int16_t pdata rmotor_last_last_error = 0;
-int16_t pdata rmotor_increment = 0;
-int16_t pdata rmotor_derivative = 0;
-int16_t pdata rmotor_output = 0;
+int16_t idata rmotor_Kp = 5;
+int16_t idata rmotor_Ki = 15;
+int16_t idata rmotor_Kd = 3;
+int16_t idata RMOTOR_SETPOINT_BASE = 5;
+int16_t idata rmotor_setpoint = 0;
+int16_t idata rmotor_error = 0;
+int16_t idata rmotor_last_error = 0;
+int16_t idata rmotor_last_last_error = 0;
+int16_t idata rmotor_increment = 0;
+int16_t idata rmotor_derivative = 0;
+int16_t idata rmotor_output = 0;
 
-int8_t pdata task_index = 0;
-int8_t pdata flag_stop = 0;
-int8_t pdata flag_end = 0;
-uint16_t pdata timestamp = 0;
-uint16_t pdata timestamp_led = 0;
+int8_t idata task_index = 0;
+int8_t idata flag_stop = 0;
+int8_t idata flag_end = 0;
+uint16_t idata timestamp = 0;
+uint16_t idata timestamp_led = 0;
 
 static inline void Delay1ms(void)	//@12.000MHz
 {
@@ -110,7 +110,7 @@ static inline void Delay1ms(void)	//@12.000MHz
 
 static inline void encoder_left_init()
 {
-    EXTI_CONFIG exti_config;
+    EXTI_CONFIG idata exti_config;
     exti_config.trigger = EXTI_Trigger_Falling;
     exti_config.priority = NVIC_Priority_1;
     exti_init(EXTI_0, &exti_config);  //P32 P12
@@ -119,7 +119,7 @@ static inline void encoder_left_init()
 
 static inline void encoder_right_init()
 {
-    EXTI_CONFIG exti_config;
+    EXTI_CONFIG idata exti_config;
     exti_config.trigger = EXTI_Trigger_Falling;
     exti_config.priority = NVIC_Priority_1;
     exti_init(EXTI_1, &exti_config);  //P33 P13
@@ -127,11 +127,11 @@ static inline void encoder_right_init()
 }
 
 void main(){
-    // timer declare
-    TIM_CONFIG pdata timer;
+    // timer declare>
+    TIM_CONFIG idata timer;
 
     // uart declare
-    UART_CONFIG pdata uart;
+    UART_CONFIG idata uart;
     
     // timer0 config
     timer.mode = TIM_Mode_1;
