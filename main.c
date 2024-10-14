@@ -127,7 +127,7 @@ static inline void encoder_right_init()
 }
 
 void main(){
-    // timer declare>
+    // timer declare
     TIM_CONFIG idata timer;
 
     // uart declare
