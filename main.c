@@ -95,6 +95,24 @@ int8_t idata flag_end = 0;
 uint16_t idata timestamp = 0;
 uint16_t idata timestamp_led = 0;
 
+static inline void Delay1000ms(void)	//@12.000MHz
+{
+	unsigned char data i, j, k;
+
+	_nop_();
+	i = 8;
+	j = 154;
+	k = 122;
+	do
+	{
+		do
+		{
+			while (--k);
+		} while (--j);
+	} while (--i);
+}
+
+
 static inline void Delay1ms(void)	//@12.000MHz
 {
 	unsigned char data i, j;
@@ -169,6 +187,9 @@ void main(){
     printf("encoder init\r\n");
     while(1){
         printf(":%d,%d,%d,%d,%d,%d\r\n",(int16_t)lmotor_output,(int16_t)rmotor_output,(int16_t)encoder_left_speed,(int16_t)encoder_right_speed,lmotor_setpoint,rmotor_setpoint);
+        PcdAntennaOff();
+        Delay1ms();
+        PcdAntennaOn();
         status = PcdRequest(PICC_REQALL, tag_type);
         if (status != MI_OK){
             PcdAntennaOff();
@@ -187,16 +208,34 @@ void main(){
             timestamp_led = uptime;
             MUSIC_STATION0 = 0;
             LED_STATION0 = 0;
+            flag_stop = 1;
+            Delay1000ms();
+            timestamp_led = uptime;
+            flag_stop = 0;
+            LED_STATION0 = 0;
+            Delay1000ms();
         }
         if(serial_number[0] == 0x13 && serial_number[1] == 0xE5 && serial_number[2] == 0x92 && serial_number[3] == 0x05){
             timestamp_led = uptime;
             MUSIC_STATION1 = 0;
             LED_STATION1 = 0;
+            flag_stop = 1;
+            Delay1000ms();
+            timestamp_led = uptime;
+            flag_stop = 0;
+            LED_STATION1 = 0;
+            Delay1000ms();
         }
         if(serial_number[0] == 0xB3 && serial_number[1] == 0x66 && serial_number[2] == 0xDA && serial_number[3] == 0xE4){
             timestamp_led = uptime;
             MUSIC_STATION2 = 0;
             LED_STATION2 = 0;
+            flag_stop = 1;
+            Delay1000ms();
+            timestamp_led = uptime;
+            flag_stop = 0;
+            LED_STATION2 = 0;
+            Delay1000ms();
         }
 
         // printf(",%02X,%02X,%02X,%02X\r\n",(uint16_t)serial_number[0],(uint16_t)serial_number[1],(uint16_t)serial_number[2],(uint16_t)serial_number[3]);
