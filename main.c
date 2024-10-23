@@ -1,11 +1,16 @@
 #include <STC89C5xRC.H>
-#include <uart.h>
-#include <timer.h>
-#include <nvic.h>
 #include <MFRC522.h>
+#include <INTRINS.H>
 #include "stdio.h"
-#include "system.h"
-#include "timer.h"
+
+#define FOSC 12000000L
+
+#define uint8_t unsigned char
+#define uint16_t unsigned int
+#define int8_t char
+#define int16_t int
+#define int32_t long
+#define uint32_t unsigned long
 
 #define ABS(x) ((x) > 0 ? (x) : -(x))
 
@@ -32,8 +37,10 @@
 #define RMOTOR_A P02
 #define RMOTOR_B P03
 
+#define BAUDRATE 19200
 #define TIMER0_VALUE 65467
 #define TIMER1_VALUE 55536
+#define TIMER2_VALUE 65536 - (FOSC / 32 / BAUDRATE)
 
 uint16_t data uptime = 0;
 
@@ -46,7 +53,7 @@ uint8_t data pwm_duty_ch0 = 7;
 uint8_t data pwm_duty_ch1 = 7;
 uint8_t data pwm_duty_ch2 = 7;
 
-int8_t xdata encoder_left_count = 0; 
+int8_t data encoder_left_count = 0; 
 int8_t data encoder_right_count = 0;
 int8_t data encoder_left_speed = 0;
 int8_t data encoder_right_speed = 0;
@@ -95,7 +102,57 @@ int8_t idata flag_end = 0;
 uint16_t idata timestamp = 0;
 uint16_t idata timestamp_led = 0;
 
-static inline void Delay1000ms(void)	//@12.000MHz
+bit busy;
+#define NONE_PARITY     0   //None parity
+#define ODD_PARITY      1   //Odd parity
+#define EVEN_PARITY     2   //Even parity
+#define MARK_PARITY     3   //Mark parity
+#define SPACE_PARITY    4   //Space parity
+
+#define PARITYBIT NONE_PARITY   //Testing even parity
+
+void Delay1ms(void)	//@12.000MHz
+{
+	unsigned char data i, j;
+
+	i = 2;
+	j = 239;
+	do
+	{
+		while (--j);
+	} while (--i);
+}
+
+void uart_send_char(unsigned char dat)
+{
+    Delay1ms();
+ 
+    SBUF = dat;             //Send data to UART buffer
+    Delay1ms();
+    Delay1ms();
+    Delay1ms();
+    while (!TI);
+    TI = 0;
+
+}
+
+void uart_send(char *str)
+{
+    while (*str)
+    {
+        uart_send_char(*str++);
+    }
+}
+
+char putchar(char c)
+{
+    if (c == '\n')
+        uart_send_char('\r');
+    uart_send_char(c);
+    return c;
+}
+
+void Delay1000ms(void)	//@12.000MHz
 {
 	unsigned char data i, j, k;
 
@@ -112,69 +169,88 @@ static inline void Delay1000ms(void)	//@12.000MHz
 	} while (--i);
 }
 
-
-static inline void Delay1ms(void)	//@12.000MHz
+void encoder_left_init()
 {
-	unsigned char data i, j;
-
-	i = 2;
-	j = 239;
-	do
-	{
-		while (--j);
-	} while (--i);
+    // EXTI_CONFIG idata exti_config;
+    // exti_config.trigger = EXTI_Trigger_Falling;
+    // exti_config.priority = NVIC_Priority_1;
+    // exti_init(EXTI_0, &exti_config);  //P32 P12
+    // exti_cmd(EXTI_0, true);
+    IT0 = 1;
+    EX0 = 1;
 }
 
-
-static inline void encoder_left_init()
+void encoder_right_init()
 {
-    EXTI_CONFIG idata exti_config;
-    exti_config.trigger = EXTI_Trigger_Falling;
-    exti_config.priority = NVIC_Priority_1;
-    exti_init(EXTI_0, &exti_config);  //P32 P12
-    exti_cmd(EXTI_0, true);
+    // EXTI_CONFIG idata exti_config;
+    // exti_config.trigger = EXTI_Trigger_Falling;
+    // exti_config.priority = NVIC_Priority_1;
+    // exti_init(EXTI_1, &exti_config);  //P33 P13
+    // exti_cmd(EXTI_1, true);
+    IT1 = 1;
+    EX1 = 1;
 }
 
-static inline void encoder_right_init()
+void timer0_init()
 {
-    EXTI_CONFIG idata exti_config;
-    exti_config.trigger = EXTI_Trigger_Falling;
-    exti_config.priority = NVIC_Priority_1;
-    exti_init(EXTI_1, &exti_config);  //P33 P13
-    exti_cmd(EXTI_1, true);
+    TMOD |= 0x01;
+    TH0 = TIMER0_VALUE >> 8;
+    TL0 = TIMER0_VALUE;
+    TF0 = 0;
+    ET0 = 1;
+    TR0 = 1;
+}
+
+void timer1_init()
+{
+    TMOD |= 0x10;
+    TH1 = TIMER1_VALUE >> 8;
+    TL1 = TIMER1_VALUE;
+    TF1 = 0;
+    ET1 = 1;
+    TR1 = 1;
+}
+
+void uart_init(){
+    TL2 = RCAP2L= TIMER2_VALUE;
+    TH2 = RCAP2H= TIMER2_VALUE >> 8;
+
+    ES = 1;
+    SM1 = 1;
+    REN = 1;
+    
+    RCLK = 1;
+    TCLK = 1;
+    TR2 = 1;
+    ET2 = 1;
 }
 
 void main(){
     // timer declare
-    TIM_CONFIG idata timer;
-
-    // uart declare
-    UART_CONFIG idata uart;
+    // TIM_CONFIG idata timer;
     
-    // timer0 config
-    timer.mode = TIM_Mode_1;
-    timer.function = TIM_Function_Timer;
-    timer.enable_int = true;
-    timer.priority = NVIC_Priority_1;
-    timer.value = TIMER0_VALUE;
-    timer_init(TIM_0, &timer);
-    timer_cmd(TIM_0, true);
-    // timer1 config
-    timer.mode = TIM_Mode_1;
-    timer.function = TIM_Function_Timer;
-    timer.enable_int = true;
-    timer.priority = NVIC_Priority_0;
-    timer.value = TIMER1_VALUE;
-    timer_init(TIM_1, &timer);
-    timer_cmd(TIM_1, true);
+    // // timer0 config
+    // timer.mode = TIM_Mode_1;
+    // timer.function = TIM_Function_Timer;
+    // timer.enable_int = true;
+    // timer.priority = NVIC_Priority_1;
+    // timer.value = TIMER0_VALUE;
+    // timer_init(TIM_0, &timer);
+    // timer_cmd(TIM_0, true);
+    // // timer1 config
+    // timer.mode = TIM_Mode_1;
+    // timer.function = TIM_Function_Timer;
+    // timer.enable_int = true;
+    // timer.priority = NVIC_Priority_0;
+    // timer.value = TIMER1_VALUE;
+    // timer_init(TIM_1, &timer);
+    // timer_cmd(TIM_1, true);
+    encoder_left_init();
+    encoder_right_init();
+    timer0_init();
+    timer1_init();
+    uart_init();
 
-    // uart config
-    uart.baudrate = 19200;
-    uart.baud_generator = TIM_2;
-    uart.parity = UART_Parity_None;
-    uart.priority = NVIC_Priority_0;
-    uart.callback = NULL;
-    uart_init(&uart);
     EA = 1;
     printf("uart init\r\n");
     PcdReset();
@@ -182,11 +258,8 @@ void main(){
     Delay1ms();
     PcdAntennaOn();
     printf("MFRC init\r\n");
-    encoder_left_init();
-    encoder_right_init();
-    printf("encoder init\r\n");
     while(1){
-        printf(":%d,%d,%d,%d,%d,%d\r\n",(int16_t)lmotor_output,(int16_t)rmotor_output,(int16_t)encoder_left_speed,(int16_t)encoder_right_speed,lmotor_setpoint,rmotor_setpoint);
+        printf(":%d,%d,%d,%d,%d,%d,%X,%X\r\n",(int16_t)lmotor_output,(int16_t)rmotor_output,(int16_t)encoder_left_speed,(int16_t)encoder_right_speed,lmotor_setpoint,rmotor_setpoint,T2CON,SCON);
         PcdAntennaOff();
         Delay1ms();
         PcdAntennaOn();
