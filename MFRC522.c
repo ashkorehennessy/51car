@@ -1,7 +1,6 @@
 #include <intrins.h>
 #include "STC89C5xRC.H"
 #include "MFRC522.h"
-#include "config.h"
 
 #define MAXRLEN 18
 #define USED_MFRC522_PA

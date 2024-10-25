@@ -14,46 +14,7 @@
             "path": "main.c"
           },
           {
-            "path": "STC89_Lib/src/exti.c"
-          },
-          {
-            "path": "STC89_Lib/src/gpio.c"
-          },
-          {
-            "path": "STC89_Lib/src/isp.c"
-          },
-          {
-            "path": "STC89_Lib/src/mem.c"
-          },
-          {
-            "path": "STC89_Lib/src/nvic.c"
-          },
-          {
-            "path": "STC89_Lib/src/power.c"
-          },
-          {
-            "path": "STC89_Lib/src/soft_i2c.c"
-          },
-          {
-            "path": "STC89_Lib/src/soft_pwm.c"
-          },
-          {
-            "path": "STC89_Lib/src/soft_spi.c"
-          },
-          {
-            "path": "STC89_Lib/src/system.c"
-          },
-          {
-            "path": "STC89_Lib/src/timer.c"
-          },
-          {
-            "path": "STC89_Lib/src/uart.c"
-          },
-          {
-            "path": "STC89_Lib/src/wdt.c"
-          },
-          {
-            "path": "STC89_Lib/src/MFRC522.c"
+            "path": "MFRC522.c"
           }
         ],
         "folders": []
@@ -69,7 +30,9 @@
   "targets": {
     "Target 1": {
       "excludeList": [
-        "<virtual_root>/Source Group 1/encoder.c"
+        "<virtual_root>/Source Group 1/encoder.c",
+        "<virtual_root>/Source Group 1/exti.c",
+        "<virtual_root>/Source Group 1/gpio.c"
       ],
       "toolchain": "Keil_C51",
       "compileConfig": {
@@ -93,7 +56,7 @@
         "name": "default",
         "incList": [
           "../../../../Keil_v5/C51/INC/STC",
-          "STC89_Lib/inc"
+          "."
         ],
         "libList": [],
         "defineList": [

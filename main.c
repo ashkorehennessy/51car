@@ -23,7 +23,7 @@
 #define PWM_CH0_PIN P25
 #define PWM_CH1_PIN P26
 #define PWM_CH2_PIN P27
-#define SERVO_MID_DUTY 17
+#define SERVO_MID_DUTY 18
 
 #define LED_STATION0 P20
 #define LED_STATION1 P22
@@ -38,9 +38,9 @@
 #define RMOTOR_B P03
 
 #define BAUDRATE 19200
-#define TIMER0_VALUE 65467
-#define TIMER1_VALUE 55536
-#define TIMER2_VALUE 65536 - (FOSC / 32 / BAUDRATE)
+#define TIMER0_VALUE 65470
+#define TIMER1_VALUE 55535
+#define TIMER2_VALUE 65535 - (FOSC / 32 / BAUDRATE)
 
 uint16_t data uptime = 0;
 
@@ -110,7 +110,6 @@ bit busy;
 #define SPACE_PARITY    4   //Space parity
 
 #define PARITYBIT NONE_PARITY   //Testing even parity
-
 void Delay1ms(void)	//@12.000MHz
 {
 	unsigned char data i, j;
@@ -123,17 +122,11 @@ void Delay1ms(void)	//@12.000MHz
 	} while (--i);
 }
 
-void uart_send_char(unsigned char dat)
+void uart_send_char(char c)
 {
-    Delay1ms();
- 
-    SBUF = dat;             //Send data to UART buffer
-    Delay1ms();
-    Delay1ms();
-    Delay1ms();
-    while (!TI);
-    TI = 0;
-
+    while (busy);
+    busy = 1;
+    SBUF = c;
 }
 
 void uart_send(char *str)
@@ -171,22 +164,12 @@ void Delay1000ms(void)	//@12.000MHz
 
 void encoder_left_init()
 {
-    // EXTI_CONFIG idata exti_config;
-    // exti_config.trigger = EXTI_Trigger_Falling;
-    // exti_config.priority = NVIC_Priority_1;
-    // exti_init(EXTI_0, &exti_config);  //P32 P12
-    // exti_cmd(EXTI_0, true);
     IT0 = 1;
     EX0 = 1;
 }
 
 void encoder_right_init()
 {
-    // EXTI_CONFIG idata exti_config;
-    // exti_config.trigger = EXTI_Trigger_Falling;
-    // exti_config.priority = NVIC_Priority_1;
-    // exti_init(EXTI_1, &exti_config);  //P33 P13
-    // exti_cmd(EXTI_1, true);
     IT1 = 1;
     EX1 = 1;
 }
@@ -199,6 +182,7 @@ void timer0_init()
     TF0 = 0;
     ET0 = 1;
     TR0 = 1;
+    PT0 = 1;
 }
 
 void timer1_init()
@@ -214,11 +198,10 @@ void timer1_init()
 void uart_init(){
     TL2 = RCAP2L= TIMER2_VALUE;
     TH2 = RCAP2H= TIMER2_VALUE >> 8;
-
-    ES = 1;
     SM1 = 1;
     REN = 1;
-    
+    ES = 1;
+
     RCLK = 1;
     TCLK = 1;
     TR2 = 1;
@@ -259,7 +242,7 @@ void main(){
     PcdAntennaOn();
     printf("MFRC init\r\n");
     while(1){
-        printf(":%d,%d,%d,%d,%d,%d,%X,%X\r\n",(int16_t)lmotor_output,(int16_t)rmotor_output,(int16_t)encoder_left_speed,(int16_t)encoder_right_speed,lmotor_setpoint,rmotor_setpoint,T2CON,SCON);
+        printf(":%d,%d,%d,%d,%d,%d\n",(int16_t)lmotor_output,(int16_t)rmotor_output,(int16_t)encoder_left_speed,(int16_t)encoder_right_speed,lmotor_setpoint,rmotor_setpoint);
         PcdAntennaOff();
         Delay1ms();
         PcdAntennaOn();
@@ -315,28 +298,28 @@ void main(){
     }
 }
 
-void timer0(void) interrupt 1{
-    TH0 = TIMER0_VALUE >> 8;
+void timer0_isr(void) interrupt 1{
     TL0 = TIMER0_VALUE;
+    TH0 = TIMER0_VALUE >> 8;
     if(pwm_tick < pwm_duty_ch0){
         PWM_CH0_PIN = 1;
     }else{
         PWM_CH0_PIN = 0;
     }
-    if(pwm_tick < pwm_duty_ch1){
-        PWM_CH1_PIN = 1;
-    }else{
-        PWM_CH1_PIN = 0;
-    }
-    if(pwm_tick < pwm_duty_ch2){
-        PWM_CH2_PIN = 1;
-    }else{
-        PWM_CH2_PIN = 0;
-    }
+    // if(pwm_tick < pwm_duty_ch1){
+    //     PWM_CH1_PIN = 1;
+    // }else{
+    //     PWM_CH1_PIN = 0;
+    // }
+    // if(pwm_tick < pwm_duty_ch2){
+    //     PWM_CH2_PIN = 1;
+    // }else{
+    //     PWM_CH2_PIN = 0;
+    // }
     pwm_tick++;
 }
 
-void timer1(void) interrupt 3{
+void timer1_isr(void) interrupt 3{
     TH1 = TIMER1_VALUE >> 8;
     TL1 = TIMER1_VALUE;
     uptime += 10;
@@ -550,7 +533,7 @@ void timer1(void) interrupt 3{
     }
 }
 
-void exint0(void) interrupt 0{
+void ex0_isr(void) interrupt 0{
     if(ENCODER_LEFT_B == 0)
     {
         encoder_left_count++;
@@ -561,7 +544,7 @@ void exint0(void) interrupt 0{
     }
 }
 
-void exint1(void) interrupt 2
+void ex1_isr(void) interrupt 2
 {
     if(ENCODER_RIGHT_B == 1)
     {
@@ -570,5 +553,13 @@ void exint1(void) interrupt 2
     else
     {
         encoder_right_count--;
+    }
+}
+
+void uart_isr(void) interrupt 4
+{
+    if(TI == 1){
+        TI = 0;
+        busy = 0;
     }
 }
